@@ -1,6 +1,6 @@
 module github.com/newrelic/newrelic-prometheus-exporters-packages/tools
 
-go 1.19
+go 1.23.2
 
 require (
 	github.com/prometheus/client_model v0.2.0
