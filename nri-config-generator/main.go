@@ -34,9 +34,14 @@ const (
 	exporterConfigFilesPath = "templates/exporter-config-files"
 	nixExportsBinPath       = "/usr/local/prometheus-exporters/bin"
 	winExportsBinPath       = "C:\\Program Files\\Prometheus-exporters\\bin"
-	sleepTime               = 30 * time.Second
-	emptyMap                = "[]"
-	templateSuffix          = ".tmpl"
+	// envExportersBinPathOverride, when set, replaces nixExportsBinPath/winExportsBinPath.
+	// Lets callers that manage the exporter binary outside the traditional OS package
+	// (e.g. New Relic's Agent Control) point the register_config output at wherever they
+	// actually placed it.
+	envExportersBinPathOverride = "PROMETHEUS_EXPORTERS_BIN_PATH"
+	sleepTime                   = 30 * time.Second
+	emptyMap                    = "[]"
+	templateSuffix              = ".tmpl"
 )
 
 var (
@@ -277,8 +282,16 @@ func loadTemplate(templateType string, content []byte) (*template.Template, erro
 }
 
 func prometheusExportersBinPath(name string) string {
+	binDir := nixExportsBinPath
 	if runtime.GOOS == "windows" {
-		return strings.ReplaceAll(filepath.Join(winExportsBinPath, fmt.Sprintf("%s.exe", name)), "\\", "\\\\")
+		binDir = winExportsBinPath
 	}
-	return filepath.Join(nixExportsBinPath, name)
+	if override, ok := os.LookupEnv(envExportersBinPathOverride); ok && override != "" {
+		binDir = override
+	}
+
+	if runtime.GOOS == "windows" {
+		return strings.ReplaceAll(filepath.Join(binDir, fmt.Sprintf("%s.exe", name)), "\\", "\\\\")
+	}
+	return filepath.Join(binDir, name)
 }
